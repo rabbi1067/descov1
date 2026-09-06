@@ -1,0 +1,10 @@
+{
+  "name": "DESCO Smart Balance Monitor",
+  "description": "Intelligent prepaid meter balance monitoring, AI recharge prediction, consumption analytics, and smart alert system for DESCO electricity meters.",
+  "requestFramePermissions": [
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

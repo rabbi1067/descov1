@@ -1,0 +1,67 @@
+name: DESCO Smart Meter Automated Monitor & Email Dispatch
+
+# ==============================================================================
+# এই অ্যাকশনটি প্রতি ১ ঘণ্টা পরপর (বা আপনার নির্ধারিত সময়ে) স্বয়ংক্রিয়ভাবে চলবে।
+# এছাড়াও GitHub রিপোজিটরির Actions ট্যাবে গিয়ে "Run workflow" বাটনে ক্লিক করে
+# যেকোনো সময় ওয়ান-ক্লিকে তাৎক্ষণিক রান করা যাবে।
+# ==============================================================================
+
+on:
+  schedule:
+    # প্রতি ১ ঘণ্টা অন্তর রান হবে (ইউটিসি সময়ে)
+    - cron: '0 * * * *'
+  workflow_dispatch:
+    # ম্যানুয়াল রান অপশন (GitHub Actions UI থেকে)
+    inputs:
+      force_alert:
+        description: 'কুলডাউন উপেক্ষা করে তাৎক্ষণিক সব সতর্কতা মেইল পাঠান (Force Alert)'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  monitor-and-alert:
+    name: Scan Grid Telemetry & Dispatch Alerts
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Check out repository code
+        uses: actions/checkout@v4
+
+      - name: 🐍 Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: 📦 Install Python Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+
+      - name: ⚡ Execute DESCO Telemetry Audit & Mail Dispatcher
+        env:
+          # ডাটাবেজ কানেকশন কনফিগারেশন (GitHub Secrets অথবা ডিফল্ট সেটিংস)
+          MYSQL_HOST: ${{ secrets.MYSQL_HOST || 'localhost' }}
+          MYSQL_PORT: ${{ secrets.MYSQL_PORT || '3306' }}
+          MYSQL_USER: ${{ secrets.MYSQL_USER || 'root' }}
+          MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD || 'rabbi1067' }}
+          MYSQL_DATABASE: ${{ secrets.MYSQL_DATABASE || 'desco1' }}
+          
+          # আউটগোয়িং ইমেইল কনফিগারেশন
+          SMTP_HOST: ${{ secrets.SMTP_HOST || 'smtp.mailgun.org' }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT || '587' }}
+          SMTP_USER: ${{ secrets.SMTP_USER || '' }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD || '' }}
+          SMTP_FROM_NAME: ${{ secrets.SMTP_FROM_NAME || 'DESCO Smart Balance Alert' }}
+          SMTP_FROM_EMAIL: ${{ secrets.SMTP_FROM_EMAIL || 'notifications@desco.org.bd' }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET || 'desco_github_action_secret' }}
+        run: |
+          echo "========================================================"
+          echo "Running DESCO Automated Multi-Meter Multi-User Scanner..."
+          echo "========================================================"
+          if [ "${{ inputs.force_alert }}" = "true" ]; then
+            python backend/cron_scanner.py --force
+          else
+            python backend/cron_scanner.py
+          fi
